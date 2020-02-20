@@ -1,0 +1,27 @@
+[package]
+name = "echo"
+version = "0.1.0"
+authors = ["messense <messense@icloud.com>"]
+
+[dependencies]
+iron = "*"
+router = "*"
+urlencoded = "*"
+bodyparser = "*"
+log ="0.3"
+actix = "0.8.3"
+actix-web = "1.0.9"
+actix-files = "0.1.7"
+actix-rt = "0.2.6"
+reqwest = "0.9.24"
+env_logger = "0.7.1"
+actix-cors = "0.1.0"
+futures = "0.1.29"
+json = "0.12.0"
+time = "0.1.42"
+tokio = "0.2.6"
+bytes = "0.5.3"
+chrono = "0.4.10"
+
+[dependencies.wechat]
+path = "../../"
