@@ -21,6 +21,7 @@ sxd-document = "0.2"
 sxd-xpath = "0.2"
 time = "0.1"
 url = "1.2"
+reqwest = { version = "0.10.2", features = ["blocking", "json"] }
 
 [features]
 unstable = []

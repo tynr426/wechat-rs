@@ -2,12 +2,10 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use url::Url;
-use hyper::{self, Client};
-use hyper::client::{Request, Response};
-use hyper::method::Method;
+use hyper::{self, Client, Request,Response,Method};
 use rustc_serialize::json::{self, Json, Object};
 use rustc_serialize::Encodable;
-use multipart::client::Multipart;
+use reqwest::multipart::Form;
 
 use errors::WeChatError;
 use types::WeChatResult;
