@@ -1,7 +1,7 @@
 use hex::ToHex;
 use base64;
-use crypto::hash;
-
+use crypto::sha1::Sha1;
+use crypto::digest::Digest;
 mod prp;
 
 use errors::WeChatError;
@@ -38,8 +38,16 @@ impl WeChatCrypto {
         data.sort();
         let data_str = data.join("");
         // TODO: do not unwrap
-        let signature = hash::hash(hash::Type::SHA1, data_str.as_bytes()).unwrap();
-        signature.to_hex()
+        let mut hasher = Sha1::new();
+
+        // write input message
+        hasher.input_str("hello world");
+
+        // read hash digest
+         hasher.result_str()
+
+        // let signature = hash::hash(hash::Type::SHA1, data_str.as_bytes()).unwrap();
+        // signature.to_hex()
     }
 
     pub fn check_signature(&self, signature: &str, timestamp: i64, nonce: &str, echo_str: &str) -> WeChatResult<String> {

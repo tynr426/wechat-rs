@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use hex::ToHex;
-use openssl::crypto::hash;
+use crypto::sha1::Sha1;
 
 
 pub fn check_signature<S: Into<String>, T: AsRef<str>>(token: S, signature: T, timestamp: S, nonce: S) -> bool {
@@ -11,9 +11,18 @@ pub fn check_signature<S: Into<String>, T: AsRef<str>>(token: S, signature: T, t
     ];
     data.sort();
     let data_str = data.join("");
-    // TODO: do not unwrap
-    let real_sign = hash::hash(hash::Type::SHA1, data_str.as_bytes()).unwrap();
-    signature.as_ref() == &real_sign.to_hex()
+    // create a Sha1 object
+    let mut hasher = Sha1::new();
+
+    // write input message
+    hasher.input_str(data_str);
+
+    // read hash digest
+    signature.as_ref()== hasher.result_str()
+
+    // // TODO: do not unwrap
+    // let real_sign = hash::hash(hash::Type::SHA1, data_str.as_bytes()).unwrap();
+    // signature.as_ref() == &real_sign.to_hex()
 }
 
 pub fn current_timestamp() -> i64 {
