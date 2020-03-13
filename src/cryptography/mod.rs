@@ -1,6 +1,6 @@
 use hex::ToHex;
 use base64;
-use openssl::crypto::hash;
+use crypto::hash;
 
 mod prp;
 

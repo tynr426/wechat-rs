@@ -2,7 +2,7 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use hex::ToHex;
-use openssl::crypto::hash;
+use crypto::hash;
 use jsonway;
 
 use session::SessionStore;

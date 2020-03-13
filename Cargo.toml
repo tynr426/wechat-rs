@@ -1,23 +1,19 @@
 [package]
-authors = ["messense <messense@icloud.com>"]
 description = "WeChat SDK for Rust"
-homepage = "https://github.com/messense/wechat-rs"
 keywords = ["wechat", "sdk"]
 license = "MIT"
 name = "wechat"
 readme = "README.md"
-repository = "https://github.com/messense/wechat-rs"
 version = "0.2.0"
 
 [dependencies]
 base64 = "0.2"
 byteorder = "0.5"
 hex = "0.2"
-hyper = "0.9"
 jsonway = "0.3"
 log = "0.3"
-multipart = "0.8"
-openssl = "0.8"
+hyper = "0.12.35"
+rust-crypto = "0.2.36"
 rand = "0.3"
 redis = "0.7"
 rustc-serialize = "0.3"

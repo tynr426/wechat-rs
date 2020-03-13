@@ -6,9 +6,8 @@ extern crate sxd_xpath;
 extern crate rustc_serialize;
 extern crate byteorder;
 extern crate hyper;
-extern crate openssl;
+extern crate crypto;
 extern crate redis;
-extern crate multipart;
 extern crate jsonway;
 #[macro_use]
 extern crate log;

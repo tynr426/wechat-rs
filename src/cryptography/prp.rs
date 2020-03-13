@@ -4,7 +4,7 @@ use rand::thread_rng;
 use rand::Rng;
 use base64;
 use byteorder::{NativeEndian, WriteBytesExt, ReadBytesExt};
-use openssl::crypto::symm;
+use crypto::symm;
 
 use types::WeChatResult;
 use errors::WeChatError;
