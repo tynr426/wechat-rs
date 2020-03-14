@@ -97,7 +97,9 @@ impl<T: SessionStore> APIClient<T> {
                 return Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) });
             }
             }
-        }).map_err(|e| Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) }));
+        }).map_err(|e| Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) }))
+        .map(Ok)
+        ;
         
         fut
 
