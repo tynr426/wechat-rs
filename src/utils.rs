@@ -1,5 +1,4 @@
 use std::time::{SystemTime, UNIX_EPOCH};
-use hex::ToHex;
 use crypto::sha1::Sha1;
 
 

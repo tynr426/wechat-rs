@@ -4,7 +4,8 @@ use rand::thread_rng;
 use rand::Rng;
 use base64;
 use byteorder::{NativeEndian, WriteBytesExt, ReadBytesExt};
-use crypto::symm;
+use crypto::buffer::{BufferResult, ReadBuffer, WriteBuffer};
+use crypto::{aes, blockmodes, buffer, symmetriccipher};
 
 use types::WeChatResult;
 use errors::WeChatError;
@@ -35,8 +36,10 @@ impl PrpCrypto {
         wtr.write_u32::<NativeEndian>((plaintext.len() as u32).to_be()).unwrap();
         wtr.extend(plaintext.bytes());
         wtr.extend(_id.bytes());
+        //aes 加密
+
         // TODO: do not unwrap
-        let encrypted = symm::encrypt(symm::Type::AES_256_CBC, &self.key, Some(&self.key[..16]), &wtr).unwrap();
+        let encrypted = aes256_cbc_encrypt(&wtr.to_vec(), &self.key, &self.key[..16]).unwrap();
         let b64encoded = base64::encode(&encrypted);
         Ok(b64encoded)
     }
@@ -44,7 +47,7 @@ impl PrpCrypto {
     pub fn decrypt(&self, ciphertext: &str, _id: &str) -> WeChatResult<String> {
         let b64decoded = try!(base64::decode(ciphertext));
         // TODO: do not unwrap
-        let text = symm::decrypt(symm::Type::AES_256_CBC, &self.key, Some(&self.key[..16]), &b64decoded).unwrap();
+        let text = aes256_cbc_decrypt(&b64decoded,&self.key, &self.key[..16]).unwrap();
         let mut rdr = Cursor::new(text[16..20].to_vec());
         let content_length = u32::from_be(rdr.read_u32::<NativeEndian>().unwrap()) as usize;
         let content = &text[20 .. content_length + 20];
@@ -56,7 +59,57 @@ impl PrpCrypto {
         Ok(content_string)
     }
 }
+// Encrypt a buffer with the given key and iv using AES-256/CBC/Pkcs encryption.
+fn aes256_cbc_encrypt(data: &[u8], key: &[u8], iv: &[u8])->Result<Vec<u8>,symmetriccipher::SymmetricCipherError>{
+    let mut encryptor=aes::cbc_encryptor(
+        aes::KeySize::KeySize256,
+        key,
+        iv,
+        blockmodes::PkcsPadding);
 
+    let mut final_result=Vec::<u8>::new();
+    let mut read_buffer=buffer::RefReadBuffer::new(data);
+    let mut buffer=[0;4096];
+    let mut write_buffer=buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop{
+        let result=(encryptor.encrypt(&mut read_buffer,&mut write_buffer,true))?;
+
+        final_result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+
+        match result {
+            BufferResult::BufferUnderflow=>break,
+            BufferResult::BufferOverflow=>{},
+        }
+    }
+
+    Ok(final_result)
+}
+
+/// Decrypts a buffer with the given key and iv using AES-256/CBC/Pkcs encryption.
+fn aes256_cbc_decrypt(encrypted_data: &[u8], key: &[u8], iv: &[u8]) -> Result<Vec<u8>, symmetriccipher::SymmetricCipherError> {
+    let mut decryptor = aes::cbc_decryptor(
+        aes::KeySize::KeySize256,
+        key,
+        iv,
+        blockmodes::PkcsPadding);
+
+    let mut final_result = Vec::<u8>::new();
+    let mut read_buffer = buffer::RefReadBuffer::new(encrypted_data);
+    let mut buffer = [0; 4096];
+    let mut write_buffer = buffer::RefWriteBuffer::new(&mut buffer);
+
+    loop {
+        let result = (decryptor.decrypt(&mut read_buffer, &mut write_buffer, true))?;
+        final_result.extend(write_buffer.take_read_buffer().take_remaining().iter().map(|&i| i));
+        match result {
+            BufferResult::BufferUnderflow => break,
+            BufferResult::BufferOverflow => { }
+        }
+    }
+
+    Ok(final_result)
+}
 #[cfg(test)]
 mod tests {
     use base64;

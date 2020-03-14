@@ -1,4 +1,4 @@
-use hex::ToHex;
+
 use base64;
 use crypto::sha1::Sha1;
 use crypto::digest::Digest;
