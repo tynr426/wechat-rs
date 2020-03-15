@@ -21,7 +21,7 @@ impl<T: SessionStore> WeChatMenu<T> {
     }
 
     pub fn create<D: Encodable>(&self, data: &D) -> WeChatResult<()> {
-        try!(self.client.post("menu/create", vec![], data));
+        self.client.post("menu/create", vec![], data)?;
         Ok(())
     }
 
@@ -30,12 +30,12 @@ impl<T: SessionStore> WeChatMenu<T> {
     }
 
     pub fn delete(&self) -> WeChatResult<()> {
-        try!(self.client.get("menu/delete", vec![]));
+        self.client.get("menu/delete", vec![])?;
         Ok(())
     }
 
     pub fn update<D: Encodable>(&self, data: &D) -> WeChatResult<()> {
-        try!(self.delete());
+        self.delete()?;
         self.create(data)
     }
 

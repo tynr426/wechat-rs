@@ -28,7 +28,7 @@ impl<T: SessionStore> WeChatUser<T> {
     }
 
     pub fn get_with_lang(&self, openid: &str, lang: &str) -> WeChatResult<User> {
-        let res = try!(self.client.get("user/info", vec![("openid", openid), ("lang", lang)]));
+        let res = self.client.get("user/info", vec![("openid", openid), ("lang", lang)])?;
         Ok(self.json_to_user(&res))
     }
 
@@ -37,7 +37,7 @@ impl<T: SessionStore> WeChatUser<T> {
             obj.set("openid", openid.to_owned());
             obj.set("remark", remark.to_owned());
         }).unwrap();
-        try!(self.client.post("user/info/updateremark", vec![], &data));
+        self.client.post("user/info/updateremark", vec![], &data)?;
         Ok(())
     }
 
@@ -46,7 +46,7 @@ impl<T: SessionStore> WeChatUser<T> {
             Some(openid) => vec![("next_openid", openid)],
             None => vec![],
         };
-        let res = try!(self.client.get("user/get", params));
+        let res = self.client.get("user/get", params)?;
         let total = &res["total"];
         let total = total.as_u64().unwrap();
         let count = &res["count"];
@@ -74,7 +74,7 @@ impl<T: SessionStore> WeChatUser<T> {
         let data = jsonway::object(|obj| {
             obj.set("openid", openid.to_owned());
         }).unwrap();
-        let res = try!(self.client.post("groups/getid", vec![], &data));
+        let res = self.client.post("groups/getid", vec![], &data)?;
         let group_id = &res["groupid"];
         let group_id = group_id.as_u64().unwrap();
         Ok(group_id)
@@ -137,7 +137,7 @@ impl<T: SessionStore> WeChatUser<T> {
         let data = jsonway::object(|obj| {
             obj.set("user_list", user_list.to_vec());
         }).unwrap();
-        let res = try!(self.client.post("user/info/batchget", vec![], &data));
+        let res = self.client.post("user/info/batchget", vec![], &data)?;
         let info_list = &res["user_info_list"];
         let info_list = info_list.as_array().unwrap();
         let mut users = vec![];

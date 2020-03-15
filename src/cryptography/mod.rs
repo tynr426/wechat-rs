@@ -56,13 +56,13 @@ impl WeChatCrypto {
             return Err(WeChatError::InvalidSignature);
         }
         let prp = PrpCrypto::new(&self.key);
-        let msg = try!(prp.decrypt(echo_str, &self._id));
+        let msg = prp.decrypt(echo_str, &self._id)?;
         Ok(msg)
     }
 
     pub fn encrypt_message(&self, msg: &str, timestamp: i64, nonce: &str) -> WeChatResult<String> {
         let prp = PrpCrypto::new(&self.key);
-        let encrypted_msg = try!(prp.encrypt(msg, &self._id));
+        let encrypted_msg = prp.encrypt(msg, &self._id)?;
         let signature = self.get_signature(timestamp, nonce, &encrypted_msg);
         let msg = format!(
             "<xml>\n\
@@ -89,7 +89,7 @@ impl WeChatCrypto {
             return Err(WeChatError::InvalidSignature);
         }
         let prp = PrpCrypto::new(&self.key);
-        let msg = try!(prp.decrypt(&encrypted_msg, &self._id));
+        let msg = prp.decrypt(&encrypted_msg, &self._id)?;
         Ok(msg)
     }
 }

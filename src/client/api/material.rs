@@ -33,9 +33,7 @@ impl<T: SessionStore> WeChatMaterial<T> {
     pub fn add<S: AsRef<str>, R: Read>(&self, media_type: S, media: &mut R) -> WeChatResult<Material> {
         let mut files = HashMap::new();
         files.insert("media".to_owned(), media);
-        let res = try!(
-            self.client.upload_file("material/add_material", vec![("type", media_type.as_ref())], &mut files)
-        );
+        let res =self.client.upload_file("material/add_material", vec![("type", media_type.as_ref())], &mut files)?;
         let media_id = &res["media_id"];
         let media_id = media_id.as_string().unwrap();
         let url = res.find("url").map(|x| x.as_string().unwrap().to_owned());
@@ -49,7 +47,7 @@ impl<T: SessionStore> WeChatMaterial<T> {
         let data = jsonway::object(|obj| {
             obj.set("articles", articles.to_vec());
         }).unwrap();
-        let res = try!(self.client.post("material/add_news", vec![], &data));
+        let res = self.client.post("material/add_news", vec![], &data)?;
         let media_id = &res["media_id"];
         let media_id = media_id.as_string().unwrap();
         Ok(Material {
@@ -64,7 +62,7 @@ impl<T: SessionStore> WeChatMaterial<T> {
             obj.set("index", index);
             obj.set("articles", article);
         }).unwrap();
-        try!(self.client.post("material/update_news", vec![], &data));
+        self.client.post("material/update_news", vec![], &data)?;
         Ok(())
     }
 
@@ -72,12 +70,12 @@ impl<T: SessionStore> WeChatMaterial<T> {
         let data = jsonway::object(|obj| {
             obj.set("media_id", media_id.into());
         }).unwrap();
-        try!(self.client.post("material/del_material", vec![], &data));
+        self.client.post("material/del_material", vec![], &data)?;
         Ok(())
     }
 
     pub fn get_count(&self) -> WeChatResult<MaterialCount> {
-        let res = try!(self.client.get("material/get_materialcount", vec![]));
+        let res = self.client.get("material/get_materialcount", vec![])?;
         let voice_count = &res["voice_count"];
         let voice_count = voice_count.as_u64().unwrap();
         let video_count = &res["video_count"];
@@ -100,7 +98,7 @@ impl<T: SessionStore> WeChatMaterial<T> {
             obj.set("offset", offset);
             obj.set("count", count);
         }).unwrap();
-        let res = try!(self.client.post("material/batchget_material", vec![], &data));
+        let res = self.client.post("material/batchget_material", vec![], &data)?;
         let total_count = &res["total_count"];
         let total_count = total_count.as_u64().unwrap();
         let item_count = &res["item_count"];
@@ -141,7 +139,7 @@ impl<T: SessionStore> WeChatMaterial<T> {
             obj.set("offset", offset);
             obj.set("count", count);
         }).unwrap();
-        let res = try!(self.client.post("material/batchget_material", vec![], &data));
+        let res = self.client.post("material/batchget_material", vec![], &data)?;
         let total_count = &res["total_count"];
         let total_count = total_count.as_u64().unwrap();
         let item_count = &res["item_count"];

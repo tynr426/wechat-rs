@@ -26,7 +26,7 @@ impl<T: SessionStore> WeChatGroup<T> {
                 obj.set("name", name.to_owned());
             });
         }).unwrap();
-        let res = try!(self.client.post("groups/create", vec![], &data));
+        let res = self.client.post("groups/create", vec![], &data)?;
         let group_id = res.find_path(&["group", "id"]).unwrap();
         let group_id = group_id.as_u64().unwrap();
         let group_name = res.find_path(&["group", "name"]).unwrap();
@@ -39,7 +39,7 @@ impl<T: SessionStore> WeChatGroup<T> {
     }
 
     pub fn list(&self) -> WeChatResult<Vec<Group>> {
-        let res = try!(self.client.get("groups/get", vec![]));
+        let res = self.client.get("groups/get", vec![])?;
         let groups = res.find("groups").unwrap();
         let groups_array = groups.as_array().unwrap();
         let mut groups = vec![];
@@ -67,7 +67,7 @@ impl<T: SessionStore> WeChatGroup<T> {
                 obj.set("name", name.to_owned());
             });
         }).unwrap();
-        try!(self.client.post("groups/update", vec![], &data));
+        self.client.post("groups/update", vec![], &data)?;
         Ok(())
     }
 
@@ -77,7 +77,7 @@ impl<T: SessionStore> WeChatGroup<T> {
                 obj.set("id", group_id);
             });
         }).unwrap();
-        try!(self.client.post("groups/delete", vec![], &data));
+        self.client.post("groups/delete", vec![], &data)?;
         Ok(())
     }
 
@@ -86,7 +86,7 @@ impl<T: SessionStore> WeChatGroup<T> {
             obj.set("openid", openid.to_owned());
             obj.set("to_groupid", group_id);
         }).unwrap();
-        try!(self.client.post("groups/members/update", vec![], &data));
+        self.client.post("groups/members/update", vec![], &data)?;
         Ok(())
     }
 
@@ -95,7 +95,7 @@ impl<T: SessionStore> WeChatGroup<T> {
             obj.set("openid_list", openids);
             obj.set("to_groupid", group_id);
         }).unwrap();
-        try!(self.client.post("groups/members/batchupdate", vec![], &data));
+        self.client.post("groups/members/batchupdate", vec![], &data)?;
         Ok(())
     }
 }

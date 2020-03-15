@@ -4,7 +4,7 @@ keywords = ["wechat", "sdk"]
 license = "MIT"
 name = "wechat"
 readme = "README.md"
-version = "0.2.0"
+version = "0.3.0"
 
 [dependencies]
 base64 = "0.2"
@@ -13,7 +13,7 @@ hex = "0.2"
 jsonway = "0.3"
 log = "0.3"
 hyper = "*"
-rust-crypto = "*"
+rust-crypto = "0.2.36"
 rand = "0.3"
 redis = "0.7"
 rustc-serialize = "0.3"
@@ -21,6 +21,7 @@ sxd-document = "0.2"
 sxd-xpath = "0.2"
 time = "0.1"
 url = "1.2"
+futures="*"
 reqwest = { version = "0.10.2", features = ["blocking", "json"] }
 
 [features]

@@ -45,7 +45,7 @@ impl PrpCrypto {
     }
 
     pub fn decrypt(&self, ciphertext: &str, _id: &str) -> WeChatResult<String> {
-        let b64decoded = try!(base64::decode(ciphertext));
+        let b64decoded = base64::decode(ciphertext)?;
         // TODO: do not unwrap
         let text = aes256_cbc_decrypt(&b64decoded,&self.key, &self.key[..16]).unwrap();
         let mut rdr = Cursor::new(text[16..20].to_vec());

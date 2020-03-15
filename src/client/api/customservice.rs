@@ -2,6 +2,7 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use crypto::md5::Md5;
+use crypto::digest::Digest;
 use jsonway;
 
 use session::SessionStore;
@@ -26,48 +27,50 @@ impl<T: SessionStore> WeChatCustomService<T> {
 
     pub fn add_account(&self, account: &str, nickname: &str, password: &str) -> WeChatResult<()> {
         // TODO: do not unwrap
-        let encrypted_password = Md5::new().input_str(password);
-        let encrypted_password = encrypted_password.to_hex();
+        let mut m=Md5::new();
+        m.input_str(password);
+        let encrypted_password = m.result_str();
         let data = jsonway::object(|obj| {
             obj.set("kf_account", account.to_owned());
             obj.set("nickname", nickname.to_owned());
             obj.set("password", encrypted_password);
         }).unwrap();
-        try!(self.client.post(
+        self.client.post(
             "https://api.weixin.qq.com/customservice/kfaccount/add",
             vec![],
             &data
-        ));
+        )?;
         Ok(())
     }
 
     pub fn update_account(&self, account: &str, nickname: &str, password: &str) -> WeChatResult<()> {
         // TODO: do not unwrap
-        let encrypted_password = Md5::new().input_str(password);
-        let encrypted_password = encrypted_password.to_hex();
+        let mut m=Md5::new();
+        m.input_str(password);
+        let encrypted_password = m.result_str();
         let data = jsonway::object(|obj| {
             obj.set("kf_account", account.to_owned());
             obj.set("nickname", nickname.to_owned());
             obj.set("password", encrypted_password);
         }).unwrap();
-        try!(self.client.post(
+        self.client.post(
             "https://api.weixin.qq.com/customservice/kfaccount/update",
             vec![],
             &data
-        ));
+        )?;
         Ok(())
     }
 
     pub fn delete_account(&self, account: &str) -> WeChatResult<()> {
-        try!(self.client.get(
+        self.client.get(
             "https://api.weixin.qq.com/customservice/kfaccount/del",
             vec![("kf_account", account)]
-        ));
+        )?;
         Ok(())
     }
 
     pub fn get_accounts(&self) -> WeChatResult<Vec<KFAccount>> {
-        let res = try!(self.client.get("customservice/getkflist", vec![]));
+        let res = self.client.get("customservice/getkflist", vec![])?;
         let kf_list = &res["kf_list"];
         let kf_list = kf_list.as_array().unwrap();
         let mut accounts = vec![];
@@ -92,7 +95,7 @@ impl<T: SessionStore> WeChatCustomService<T> {
     }
 
     pub fn get_online_accounts(&self) -> WeChatResult<Vec<OnlineKFAccount>> {
-        let res = try!(self.client.get("customservice/getonlinekflist", vec![]));
+        let res = self.client.get("customservice/getonlinekflist", vec![])?;
         let kf_list = &res["kf_online_list"];
         let kf_list = kf_list.as_array().unwrap();
         let mut accounts = vec![];
@@ -122,13 +125,12 @@ impl<T: SessionStore> WeChatCustomService<T> {
     pub fn upload_avatar<R: Read>(&self, account: &str, avatar: &mut R) -> WeChatResult<()> {
         let mut files = HashMap::new();
         files.insert("media".to_owned(), avatar);
-        try!(
+       
             self.client.upload_file(
                 "https://api.weixin.qq.com/customservice/kfaccount/uploadheadimg",
                 vec![("kf_account", account)],
                 &mut files
-            )
-        );
+            )?;
         Ok(())
     }
 }

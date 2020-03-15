@@ -1,7 +1,7 @@
 use std::io::{Read, Seek, SeekFrom, Cursor};
 use std::collections::HashMap;
 
-use hyper::method::Method;
+
 use rustc_serialize::json::{Json, Object};
 
 use types::WeChatResult;
@@ -27,9 +27,7 @@ impl<T: SessionStore> WeChatMedia<T> {
     pub fn upload<S: AsRef<str>, R: Read>(&self, media_type: S, media: &mut R) -> WeChatResult<Media> {
         let mut files = HashMap::new();
         files.insert("media".to_owned(), media);
-        let res = try!(
-            self.client.upload_file("media/upload", vec![("type", media_type.as_ref())], &mut files)
-        );
+        let res =self.client.upload_file("media/upload", vec![("type", media_type.as_ref())], &mut files)?;
         let media_id = &res["media_id"];
         let media_id = media_id.as_string().unwrap();
         let created_at = &res["created_at"];
@@ -46,27 +44,21 @@ impl<T: SessionStore> WeChatMedia<T> {
     pub fn upload_image<R: Read>(&self, media:&mut R) -> WeChatResult<String> {
         let mut files = HashMap::new();
         files.insert("media".to_owned(), media);
-        let res = try!(
-            self.client.upload_file("media/uploadimg", vec![], &mut files)
-        );
+        let res =self.client.upload_file("media/uploadimg", vec![], &mut files)?;
         let url = &res["url"];
         let url = url.as_string().unwrap();
         Ok(url.to_owned())
     }
 
-    pub fn get<S: AsRef<str>>(&self, media_id: S) -> WeChatResult<Cursor<Vec<u8>>> {
-        let mut res = try!(
+    pub fn get<S: AsRef<str>>(&self, media_id: S) -> WeChatResult<Vec<u8>> {
+        let res = 
             self.client.request(
-                Method::Get,
+                "GET",
                 "media/get",
                 vec![("media_id", media_id.as_ref())],
                 &Object::new()
-            )
-        );
-        let mut buff = vec![];
-        try!(res.read_to_end(&mut buff));
-        let mut cursor = Cursor::new(buff);
-        match Json::from_reader(&mut cursor) {
+            )?;
+        let error_obj=match Json::from_str(&res) {
             Ok(obj) => {
                 match obj.find("errcode") {
                     Some(code) => {
@@ -86,8 +78,7 @@ impl<T: SessionStore> WeChatMedia<T> {
                 }
             },
             Err(_) => {}
-        }
-        try!(cursor.seek(SeekFrom::Start(0u64)));
-        Ok(cursor)
+        };
+        Ok("".as_bytes().to_vec())
     }
 }

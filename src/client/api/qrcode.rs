@@ -21,7 +21,7 @@ impl<T: SessionStore> WeChatQRCode<T> {
     }
     
     pub fn create<D: Encodable>(&self, data: &D) -> WeChatResult<QRCodeTicket> {
-        let res = try!(self.client.post("qrcode/create", vec![], data));
+        let res = self.client.post("qrcode/create", vec![], data)?;
         let ticket = &res["ticket"];
         let ticket = ticket.as_string().unwrap();
         let expire_seconds = match res.find("expire_seconds") {

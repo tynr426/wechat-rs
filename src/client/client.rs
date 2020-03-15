@@ -2,15 +2,16 @@ use std::io::Read;
 use std::collections::HashMap;
 
 use url::Url;
-use hyper::{self, Client,Body, Request,Response,Method};
+// use hyper::{self, Client,Body, Request};
+
 use rustc_serialize::json::{self, Json, Object};
 use rustc_serialize::Encodable;
-use hyper::rt::Future;
+
 use errors::WeChatError;
-use types::WeChatResult;
+use types::{WeChatResult};
 use session::SessionStore;
 use utils::current_timestamp;
-
+use reqwest::header;
 
 const REFETCH_ACCESS_TOKEN_ERRCODES: [i32; 3] = [40001, 40014, 42001];
 
@@ -57,7 +58,7 @@ impl<T: SessionStore> APIClient<T> {
         }
     }
 
-    pub fn request<D: Encodable>(&self, method: &str, url: &str, params: Vec<(&str, &str)>, data: &D) -> WeChatResult<hyper::Body> {
+    pub fn request<D: Encodable>(&self, method: &str, url: &str, params: Vec<(&str, &str)>, data: &D) -> WeChatResult<String> {
         let mut http_url = if !(url.starts_with("http://") || url.starts_with("https://")) {
             let url_string=format!("https://api.weixin.qq.com/cgi-bin/{}",url);
             Url::parse(&url_string).unwrap()
@@ -75,37 +76,38 @@ impl<T: SessionStore> APIClient<T> {
             Ok(text) => text,
             Err(_) => "".to_owned(),
         };
-        let client = Client::new();
-        let req = Request::builder()
-        .method(method)
-        .uri(http_url.as_str())
-        .body(Body::from(body))
-        .expect("request builder");
+       
+        post(http_url.as_str(),&body)
+
+        // let client = Client::new();
+        // let req = Request::builder()
+        // .method(method)
+        // .uri(http_url.as_str())
+        // .body(Body::from(body))
+        // .expect("request builder");
+       // Ok(client.request(req))
+
+    //    let futures_response=client.request(req);
+    //    //hyper::body::to_bytes(futures_response)
+
+    //     let fut = futures_response.then(|_res|{
+    //         _res.into_body().concat2()
+    //     }).and_then(|body|{
+    //         let s = ::std::str::from_utf8(&body.as_bytes().to_vec()).expect("httpbin sends utf-8 JSON");
+    //         Ok(())
+
+    //     }) .map_err(|err| {
+    //         println!("error: {}", err);
+    //     });
+    //     //.map_err(|e| Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) }))
+    //     //.map(Ok)
         
-        let fut = client.request(req).then(|_res|{
-            match _res {
-            Ok(res) =>{
-                if res.status()==200{
-                    Ok(res.into_body())
-                }
-                else{
-                    Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: status={}", res.status()) })
-                }
-                },
-            Err(ref e) => {
-                error!("Send request error");
-                return Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) });
-            }
-            }
-        }).map_err(|e| Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) }))
-        .map(Ok)
-        ;
         
-        fut
+    //     fut
 
     }
 
-    fn _upload_file<R: Read>(&self, url: &str, params: Vec<(&str, &str)>, files: &mut HashMap<String, &mut R>) -> WeChatResult<hyper::Body> {
+    fn _upload_file<R: Read>(&self, url: &str, params: Vec<(&str, &str)>, files: &mut HashMap<String, &mut R>) -> WeChatResult<String> {
         let mut http_url = if !(url.starts_with("http://") || url.starts_with("https://")) {
             let mut url_string = "https://api.weixin.qq.com/cgi-bin/".to_owned();
             url_string = url_string + url;
@@ -142,16 +144,16 @@ impl<T: SessionStore> APIClient<T> {
         if self.access_token().is_empty() {
             self.fetch_access_token();
         }
-        let mut res = try!(self._upload_file(url, params.clone(), files));
-        let data = match self.json_decode(&mut res) {
+        let res = self._upload_file(url, params.clone(), files)?;
+        let data = match self.json_decode(&res) {
             Ok(_data) => _data,
             Err(err) => {
                 if let WeChatError::ClientError { errcode, .. } = err {
                     if REFETCH_ACCESS_TOKEN_ERRCODES.contains(&errcode) {
                         // access_token expired, fetch a new one and retry request
                         self.fetch_access_token();
-                        let mut res1 = try!(self._upload_file(url, params, files));
-                        try!(self.json_decode(&mut res1))
+                        let res1 = self._upload_file(url, params, files)?;
+                        self.json_decode(&res1)?
                     } else {
                         return Err(err);
                     }
@@ -164,8 +166,8 @@ impl<T: SessionStore> APIClient<T> {
     }
 
     #[inline]
-    fn json_decode(&self, res: &hyper::Body) -> WeChatResult<Json> {
-        let obj = match Json::from_str(res.concat2()) {
+    fn json_decode(&self, data:&str) -> WeChatResult<Json> {
+        let obj = match Json::from_str(data) {
             Ok(decoded) => { decoded },
             Err(ref e) => {
                 error!("Json decode error");
@@ -186,8 +188,9 @@ impl<T: SessionStore> APIClient<T> {
                 }
             },
             None => {},
-        }
+        };
         Ok(obj)
+   
     }
 
     #[inline]
@@ -195,16 +198,16 @@ impl<T: SessionStore> APIClient<T> {
         if self.access_token().is_empty() {
             self.fetch_access_token();
         }
-        let mut res = try!(self.request("POST", url, params.clone(), data));
-        let data = match self.json_decode(&mut res) {
+        let res = self.request("POST", url, params.clone(), data)?;
+        let data = match self.json_decode(&res) {
             Ok(_data) => _data,
             Err(err) => {
                 if let WeChatError::ClientError { errcode, .. } = err {
                     if REFETCH_ACCESS_TOKEN_ERRCODES.contains(&errcode) {
                         // access_token expired, fetch a new one and retry request
                         self.fetch_access_token();
-                        let mut res1 = try!(self.request("POST", url, params, data));
-                        try!(self.json_decode(&mut res1))
+                        let res1 = self.request("POST", url, params, data)?;
+                        self.json_decode(&res1)?
                     } else {
                         return Err(err);
                     }
@@ -221,16 +224,16 @@ impl<T: SessionStore> APIClient<T> {
         if self.access_token().is_empty() {
             self.fetch_access_token();
         }
-        let mut res = try!(self.request("GET", url, params.clone(), &Object::new()));
-        let data = match self.json_decode(&mut res) {
+        let res = self.request("GET", url, params.clone(), &Object::new())?;
+        let data = match self.json_decode(&res) {
             Ok(_data) => _data,
             Err(err) => {
                 if let WeChatError::ClientError { errcode, .. } = err {
                     if REFETCH_ACCESS_TOKEN_ERRCODES.contains(&errcode) {
                         // access_token expired, fetch a new one and retry request
                         self.fetch_access_token();
-                        let mut res1 = try!(self.request("GET", url, params, &Object::new()));
-                        try!(self.json_decode(&mut res1))
+                        let res1 = self.request("GET", url, params, &Object::new())?;
+                        self.json_decode(&res1)?
                     } else {
                         return Err(err);
                     }
@@ -253,11 +256,11 @@ impl<T: SessionStore> APIClient<T> {
             ],
             &Object::new()
         );
-        let mut raw_data = match res {
+        let raw_data = match res {
             Ok(raw) => raw,
             Err(_) => { return None; },
         };
-        let data = match self.json_decode(&mut raw_data) {
+        let data = match self.json_decode(&raw_data) {
             Ok(data) => data,
             Err(_) => { return None; },
         };
@@ -285,34 +288,28 @@ impl<T: SessionStore> APIClient<T> {
 }
 
 // 默认user_agent
-//const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3534.4 Safari/537.36";
+const DEFAULT_USER_AGENT: &'static str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3534.4 Safari/537.36";
 // Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Safari/605.1.15
 
 
 //采用post方式请求数据
-// pub(crate) fn post(url: &str, params: HashMap<String, String>) -> Result<String, std::io::Error> {
-//     match reqwest::blocking::Client::new()
-//             .post(url)
-//             .header(header::USER_AGENT, DEFAULT_USER_AGENT)
-//             .form(&params)
-//             .send()
-//         {
-//             Ok(res) => {
-//                 if res.status() == 200 {
-//                     match res.text() {
-//                         Ok(txt) => Ok(txt),
-//                         Err(e) => Err(std::io::Error::new(
-//                             std::io::ErrorKind::Other,
-//                             format!("{:?}", e),
-//                         )),
-//                     }
-//                 } else {
-//                     Err(std::io::Error::new(std::io::ErrorKind::Other, "error"))
-//                 }
-//             }
-//             Err(e) => Err(std::io::Error::new(
-//                 std::io::ErrorKind::Other,
-//                 format!("{:?}", e),
-//             )),
-//         }
-// }
+pub(crate) fn post(url: &str, params: &str) -> Result<String, WeChatError> {
+    match reqwest::blocking::Client::new()
+            .post(url)
+            .header(header::USER_AGENT, DEFAULT_USER_AGENT)
+            .form(params)
+            .send()
+        {
+            Ok(res) => {
+                if res.status() == 200 {
+                    match res.text() {
+                        Ok(txt) => Ok(txt),
+                        Err(e) =>Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) })
+                    }
+                } else {
+                    Err(WeChatError::ClientError { errcode: 500, errmsg: format!("status={}",res.status()) })
+                }
+            },
+            Err(e)=>Err(WeChatError::ClientError { errcode: 500, errmsg: format!("Send request error: {}", e) })
+        }
+}

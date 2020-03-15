@@ -20,7 +20,7 @@ impl<T: SessionStore> WeChatMessage<T> {
     }
 
     pub fn send<D: Encodable>(&self, data: &D) -> WeChatResult<()> {
-        try!(self.client.post("message/custom/send", vec![], data));
+        self.client.post("message/custom/send", vec![], data)?;
         Ok(())
     }
 

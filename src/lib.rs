@@ -13,7 +13,8 @@ extern crate jsonway;
 extern crate log;
 extern crate hex;
 extern crate base64;
-
+extern crate futures;
+extern crate reqwest;
 #[macro_use]
 mod macros;
 

@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
-use crypto::sha1::Sha1;
-
+use crypto::{sha1::Sha1};
+use crypto::digest::Digest;
 
 pub fn check_signature<S: Into<String>, T: AsRef<str>>(token: S, signature: T, timestamp: S, nonce: S) -> bool {
     let mut data = vec![
@@ -14,7 +14,7 @@ pub fn check_signature<S: Into<String>, T: AsRef<str>>(token: S, signature: T, t
     let mut hasher = Sha1::new();
 
     // write input message
-    hasher.input_str(data_str);
+    hasher.input_str(&data_str.clone());
 
     // read hash digest
     signature.as_ref()== hasher.result_str()
