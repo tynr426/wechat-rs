@@ -72,12 +72,17 @@ impl<T: SessionStore> APIClient<T> {
             querys.push(("access_token", &access_token));
         }
         &http_url.query_pairs_mut().extend_pairs(querys.into_iter());
-        let body = match json::encode(data) {
-            Ok(text) => text,
-            Err(_) => "".to_owned(),
-        };
-       
-        post(http_url.as_str(),&body)
+        println!("url:{:?}",http_url.as_str());
+        if method.to_lowercase()=="post"{
+            let body = match json::encode(data) {
+                Ok(text) => text,
+                Err(_) => "".to_owned(),
+            };
+            post(http_url.as_str(),&body)
+        }
+        else{
+            get(http_url.as_str())
+        }
 
         // let client = Client::new();
         // let req = Request::builder()
@@ -256,6 +261,7 @@ impl<T: SessionStore> APIClient<T> {
             ],
             &Object::new()
         );
+        
         let raw_data = match res {
             Ok(raw) => raw,
             Err(_) => { return None; },
@@ -283,6 +289,7 @@ impl<T: SessionStore> APIClient<T> {
             },
             _ => None,
         };
+        println!("token={:?}",token_str);
         token_str
     }
 }
@@ -299,6 +306,30 @@ pub(crate) fn post(url: &str, params: &str) -> Result<String, WeChatError> {
             .header(header::USER_AGENT, DEFAULT_USER_AGENT)
             .form(params)
             .send()
+        {
+            Ok(res) => {
+                if res.status() == 200 {
+                    match res.text() {
+                        Ok(txt) => Ok(txt),
+                        Err(e) =>Err(WeChatError::ClientError { errcode: -1, errmsg: format!("Send request error: {}", e) })
+                    }
+                } else {
+                    Err(WeChatError::ClientError { errcode: 500, errmsg: format!("status={}",res.status()) })
+                }
+            },
+            Err(e)=>Err(WeChatError::ClientError { errcode: 500, errmsg: format!("Send request error: {}", e) })
+        }
+}
+
+pub(crate)  fn get(url: &str) -> Result<String, WeChatError> {
+    // let mut headers = header::HeaderMap::new();
+    // headers.insert(header::HeaderName::from_static("UserAgent"), header::HeaderValue::from_static(DEFAULT_USER_AGENT));
+    
+
+    match reqwest::blocking::Client::new()
+        .get(url)
+        .header(header::USER_AGENT, DEFAULT_USER_AGENT)
+        .send()
         {
             Ok(res) => {
                 if res.status() == 200 {
